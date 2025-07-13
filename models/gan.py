@@ -1,0 +1,161 @@
+# models/gan.py
+
+"""
+Contains the GAN model classes and training logic for strategy generation.
+"""
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+import logging
+
+from strategy.strategy_generator import StrategyGenerator
+from backtest.backtester import Backtester
+from data.data_fetcher import DataFetcher
+
+
+class Generator(nn.Module):
+    def __init__(self, input_dim=100, output_dim=11):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Linear(input_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 512),
+            nn.ReLU(),
+            nn.Linear(512, output_dim),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
+
+class Discriminator(nn.Module):
+    def __init__(self, input_dim=11):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Linear(input_dim, 512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
+
+class StrategyGAN:
+    def __init__(self, input_dim=100, output_dim=11, lr=0.0002):
+        self.generator = Generator(input_dim, output_dim)
+        self.discriminator = Discriminator(output_dim)
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.g_optimizer = optim.Adam(self.generator.parameters(), lr=lr)
+        self.d_optimizer = optim.Adam(self.discriminator.parameters(), lr=lr)
+        self.criterion = nn.BCELoss()
+
+        self.strategy_gen = StrategyGenerator()
+        self.backtester = Backtester()
+        self.fetcher = DataFetcher()
+
+    def train(self, data_dict: dict, num_assets: int, strategies_per_asset=5, epochs=100):
+        """
+        Trains the GAN model to generate realistic trading strategy vectors.
+        """
+        real_strategies = []
+        for asset_idx in range(num_assets):
+            for _ in range(strategies_per_asset):
+                vec = self.strategy_gen.generate_random_vector(asset_idx)
+                real_strategies.append(vec)
+
+        # Evaluate real strategies
+        real_metrics = []
+        for vec in real_strategies:
+            strat_json = self.strategy_gen.vector_to_strategy(vec)
+            asset = strat_json["strategy"]["metadata"]["asset"]
+            timeframe = strat_json["strategy"]["metadata"]["timeframe"]
+
+            key = (asset, timeframe)
+            if key not in data_dict:
+                data_dict[key] = self.fetcher.fetch(asset, '2020-12-31', timeframe)
+
+            data = data_dict[key]
+            pnl, sharpe, dd = self.backtester.run(strat_json, data)
+            vol = self.fetcher.compute_volatility(data)
+            real_metrics.append((pnl / (vol + 1e-6), sharpe, dd))
+
+        # Select top performing strategies
+        top_indices = sorted(range(len(real_metrics)), key=lambda i: real_metrics[i][0], reverse=True)[:strategies_per_asset]
+        real_strategies = [real_strategies[i] for i in top_indices]
+
+        for epoch in range(epochs):
+            # === Train Discriminator ===
+            self.d_optimizer.zero_grad()
+
+            real_vectors = [self.strategy_gen.normalize_vector(v) for v in real_strategies]
+            real_tensors = torch.tensor(np.array(real_vectors), dtype=torch.float32)
+            real_labels = torch.ones(len(real_vectors), 1)
+            d_real = self.discriminator(real_tensors)
+            d_real_loss = self.criterion(d_real, real_labels)
+
+            noise = torch.randn(len(real_strategies), self.input_dim)
+            fake_vectors = self.generator(noise)
+            fake_vectors_denorm = [self.strategy_gen.denormalize_vector(fv.detach().numpy()) for fv in fake_vectors]
+            for i, vec in enumerate(fake_vectors_denorm):
+                vec[0] = i % num_assets  # distribute assets
+            fake_tensors = torch.tensor(
+                np.array([self.strategy_gen.normalize_vector(v) for v in fake_vectors_denorm]),
+                dtype=torch.float32
+            )
+            fake_labels = torch.zeros(len(real_vectors), 1)
+            d_fake = self.discriminator(fake_tensors)
+            d_fake_loss = self.criterion(d_fake, fake_labels)
+
+            d_loss = (d_real_loss + d_fake_loss) / 2
+            d_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.discriminator.parameters(), max_norm=1.0)
+            self.d_optimizer.step()
+
+            # === Train Generator ===
+            self.g_optimizer.zero_grad()
+
+            noise = torch.randn(len(real_strategies), self.input_dim)
+            fake_vectors = self.generator(noise)
+            fake_vectors_denorm = [self.strategy_gen.denormalize_vector(fv.detach().numpy()) for fv in fake_vectors]
+            for i, vec in enumerate(fake_vectors_denorm):
+                vec[0] = i % num_assets
+            fake_tensors = torch.tensor(
+                np.array([self.strategy_gen.normalize_vector(v) for v in fake_vectors_denorm]),
+                dtype=torch.float32
+            )
+            g_output = self.discriminator(fake_tensors)
+            g_loss = self.criterion(g_output, real_labels)
+
+            pnl_penalty = 0
+            for vec in fake_vectors_denorm:
+                strat_json = self.strategy_gen.vector_to_strategy(vec)
+                asset = strat_json["strategy"]["metadata"]["asset"]
+                timeframe = strat_json["strategy"]["metadata"]["timeframe"]
+                key = (asset, timeframe)
+
+                if key not in data_dict:
+                    data_dict[key] = self.fetcher.fetch(asset, '2020-12-31', timeframe)
+
+                data = data_dict[key]
+                pnl, _, _ = self.backtester.run(strat_json, data)
+                vol = self.fetcher.compute_volatility(data)
+                pnl_penalty += max(0, -pnl / (100_000 * (vol + 1e-6)))
+
+            pnl_penalty = torch.tensor(pnl_penalty / len(real_strategies), requires_grad=True)
+            total_g_loss = g_loss + 0.5 * pnl_penalty
+            total_g_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.generator.parameters(), max_norm=1.0)
+            self.g_optimizer.step()
+
+            if epoch % 10 == 0:
+                logging.info(f"[GAN] Epoch {epoch}, D Loss: {d_loss.item():.4f}, G Loss: {total_g_loss.item():.4f}")
+
+        return self.generator

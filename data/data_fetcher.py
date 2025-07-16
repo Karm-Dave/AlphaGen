@@ -50,45 +50,42 @@ class DataFetcher:
 
         try:
             if indicator == 'SMA':
-                return self._sma(prices, period)
+                result = np.zeros(len(prices))
+                for i in range(period - 1, len(prices)):
+                    result[i] = np.mean(prices[i-period+1:i+1])
+                return result
             elif indicator == 'EMA':
-                return self._ema(prices, period)
+                result = np.zeros(len(prices))
+                k = 2 / (period + 1)
+                result[0] = prices[0]
+                for i in range(1, len(prices)):
+                    result[i] = prices[i] * k + result[i-1] * (1 - k)
+                return result
             elif indicator == 'RSI':
-                return self._rsi(prices, period)
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    delta = np.diff(prices, prepend=prices[0])
+                    gain = np.where(delta > 0, delta, 0)
+                    loss = np.where(delta < 0, -delta, 0)
+                    avg_gain = np.zeros(len(prices))
+                    avg_loss = np.zeros(len(prices))
+                    for i in range(period - 1, len(prices)):
+                        avg_gain[i] = np.mean(gain[i-period+1:i+1])
+                        avg_loss[i] = np.mean(loss[i-period+1:i+1])
+                    rs = np.where(avg_loss != 0, avg_gain / avg_loss, 0)
+                    rsi = np.where(rs != 0, 100 - (100 / (1 + rs)), 50)
+                    return np.nan_to_num(rsi, nan=50, posinf=50, neginf=50)
             elif indicator == 'MACD':
-                return self._macd(prices)
+                ema12 = np.zeros(len(prices))
+                ema26 = np.zeros(len(prices))
+                k12 = 2 / (12 + 1)
+                k26 = 2 / (26 + 1)
+                ema12[0] = prices[0]
+                ema26[0] = prices[0]
+                for i in range(1, len(prices)):
+                    ema12[i] = prices[i] * k12 + ema12[i-1] * (1 - k12)
+                    ema26[i] = prices[i] * k26 + ema26[i-1] * (1 - k26)
+                return np.nan_to_num(ema12 - ema26, nan=0)
+            return np.zeros(len(prices))
         except Exception as e:
             logging.error(f"Error computing {indicator}: {e}")
-        return np.zeros(len(prices))
-
-    def _sma(self, prices, period):
-        result = np.zeros(len(prices))
-        for i in range(period - 1, len(prices)):
-            result[i] = np.mean(prices[i - period + 1:i + 1])
-        return result
-
-    def _ema(self, prices, period):
-        result = np.zeros(len(prices))
-        k = 2 / (period + 1)
-        result[0] = prices[0]
-        for i in range(1, len(prices)):
-            result[i] = prices[i] * k + result[i - 1] * (1 - k)
-        return result
-
-    def _rsi(self, prices, period):
-        delta = np.diff(prices, prepend=prices[0])
-        gain = np.where(delta > 0, delta, 0)
-        loss = np.where(delta < 0, -delta, 0)
-        avg_gain = np.zeros(len(prices))
-        avg_loss = np.zeros(len(prices))
-        for i in range(period - 1, len(prices)):
-            avg_gain[i] = np.mean(gain[i - period + 1:i + 1])
-            avg_loss[i] = np.mean(loss[i - period + 1:i + 1])
-        rs = np.where(avg_loss != 0, avg_gain / avg_loss, 0)
-        rsi = np.where(rs != 0, 100 - (100 / (1 + rs)), 50)
-        return np.nan_to_num(rsi, nan=50, posinf=50, neginf=50)
-
-    def _macd(self, prices):
-        ema12 = self._ema(prices, 12)
-        ema26 = self._ema(prices, 26)
-        return np.nan_to_num(ema12 - ema26, nan=0)
+            return np.zeros(len(prices))

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="500" viewBox="0 0 1100 500">
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="500" viewBox="0 0 1400 500">
   <defs>
     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
@@ -13,49 +13,50 @@
   </style>
 
   <!-- Input -->
-  <rect x="40" y="190" width="160" height="80" class="box"/>
-  <text x="120" y="220" class="label">Random Noise</text>
-  <text x="120" y="240" class="sublabel">(seed vector)</text>
+  <rect x="40" y="200" width="180" height="80" class="box"/>
+  <text x="130" y="230" class="label">📥 Random Noise</text>
+  <text x="130" y="250" class="sublabel">(seed vector)</text>
 
   <!-- Strategy Generator -->
-  <rect x="250" y="120" width="220" height="220" class="box"/>
-  <text x="360" y="150" class="label">🧬 Strategy Generator</text>
-  <text x="360" y="170" class="sublabel">(FGEG)</text>
-  <rect x="270" y="190" width="180" height="40" class="subbox"/>
-  <text x="360" y="215" class="sublabel">Generates Strategy Vectors</text>
-  <rect x="270" y="240" width="180" height="40" class="subbox"/>
-  <text x="360" y="265" class="sublabel">Denormalization</text>
+  <rect x="260" y="130" width="240" height="220" class="box"/>
+  <text x="380" y="160" class="label">🧬 Strategy Generator</text>
+  <text x="380" y="180" class="sublabel">(FGEG)</text>
+  <rect x="280" y="200" width="200" height="40" class="subbox"/>
+  <text x="380" y="225" class="sublabel">Generates Strategy Vectors</text>
+  <rect x="280" y="250" width="200" height="40" class="subbox"/>
+  <text x="380" y="275" class="sublabel">Denormalization</text>
 
   <!-- Backtester -->
-  <rect x="500" y="80" width="220" height="120" class="box"/>
-  <text x="610" y="110" class="label">📈 Backtester</text>
-  <text x="610" y="135" class="sublabel">PnL • Sharpe • Drawdown</text>
+  <rect x="540" y="80" width="240" height="120" class="box"/>
+  <text x="660" y="110" class="label">📈 Backtester</text>
+  <text x="660" y="135" class="sublabel">PnL • Sharpe • Drawdown</text>
 
   <!-- Fitness -->
-  <rect x="500" y="230" width="220" height="120" class="box"/>
-  <text x="610" y="260" class="label">⚖️ Fitness Function</text>
-  <text x="610" y="285" class="sublabel">Combines metrics → Score</text>
+  <rect x="540" y="250" width="240" height="120" class="box"/>
+  <text x="660" y="280" class="label">⚖️ Fitness Function</text>
+  <text x="660" y="305" class="sublabel">Scores strategies</text>
 
   <!-- Selection -->
-  <rect x="760" y="150" width="160" height="80" class="box"/>
-  <text x="840" y="185" class="label">🏆 Elite Strategies</text>
+  <rect x="820" y="160" width="180" height="80" class="box"/>
+  <text x="910" y="195" class="label">🏆 Elite Strategies</text>
 
   <!-- PPO Allocator -->
-  <rect x="960" y="120" width="220" height="120" class="box"/>
-  <text x="1070" y="150" class="label">🤖 PPO Allocator</text>
-  <text x="1070" y="175" class="sublabel">Decides capital weights</text>
+  <rect x="1060" y="120" width="260" height="120" class="box"/>
+  <text x="1190" y="150" class="label">🤖 PPO Allocator</text>
+  <text x="1190" y="175" class="sublabel">Learns capital weights</text>
 
   <!-- Evaluation -->
-  <rect x="960" y="270" width="220" height="120" class="box"/>
-  <text x="1070" y="300" class="label">✅ Final Evaluation</text>
-  <text x="1070" y="325" class="sublabel">Out-of-sample backtest</text>
-  <text x="1070" y="350" class="sublabel">Reports performance</text>
+  <rect x="1060" y="280" width="260" height="120" class="box"/>
+  <text x="1190" y="310" class="label">✅ Final Evaluation</text>
+  <text x="1190" y="335" class="sublabel">Out-of-sample backtest</text>
+  <text x="1190" y="360" class="sublabel">Performance Report</text>
 
   <!-- Arrows -->
-  <line x1="200" y1="230" x2="250" y2="230" class="arrow"/>
-  <line x1="470" y1="210" x2="500" y2="140" class="arrow"/>
-  <line x1="470" y1="230" x2="500" y2="270" class="arrow"/>
-  <line x1="720" y1="140" x2="760" y2="190" class="arrow"/>
-  <line x1="920" y1="190" x2="960" y2="190" class="arrow"/>
-  <line x1="920" y1="290" x2="960" y2="310" class="arrow"/>
+  <line x1="220" y1="240" x2="260" y2="240" class="arrow"/>
+  <line x1="500" y1="190" x2="540" y2="140" class="arrow"/>
+  <line x1="500" y1="240" x2="540" y2="290" class="arrow"/>
+  <line x1="780" y1="190" x2="820" y2="190" class="arrow"/>
+  <line x1="1000" y1="190" x2="1060" y2="190" class="arrow"/>
+  <!-- FIXED: Arrow into Final Evaluation (horizontal into center) -->
+  <line x1="910" y1="340" x2="1060" y2="340" class="arrow"/>
 </svg>

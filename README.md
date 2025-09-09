@@ -21,17 +21,9 @@ It doesn’t just backtest one strategy — it **creates**, **allocates**, and *
 
 ---
 
-## 🔥 Why It’s Cool
-
-- Generates trading strategies like DNA from scratch.  
-- Learns how to combine them into a portfolio.  
-- Tests on out-of-sample data to avoid overfitting.  
-
----
-
 ## 🖼️ How It Works
 
-![Pipeline Diagram](./pipeline.)
+![Pipeline Diagram](./pipeline.svg)
 
 ---
 

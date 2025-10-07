@@ -1,6 +1,6 @@
 # config/constants.py
 
-ASSETS = ['F', 'IBM', 'MCD', 'KO']
+ASSETS = ['AAPL', 'IBM', 'MCD', 'KO']
 INDICATORS = ['SMA', 'EMA', 'RSI', 'MACD']
 OPERATORS = ['crosses_above', 'crosses_below', 'greater_than', 'less_than']
 TIMEFRAMES = ['1d']

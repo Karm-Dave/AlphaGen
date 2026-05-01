@@ -63,14 +63,7 @@ class FGEG:
         return fitness
 
     def train(self, data_dict, epochs=100, batch_size=20):
-        """
-        FGEG training loop:
-        1. Sample random latent vectors
-        2. Generate candidate strategies
-        3. Evaluate strategies
-        4. Select top elite strategies
-        5. Train generator to imitate elites
-        """
+
         top_k_ratio = 0.2  # top 20% strategies per generation
         top_k_gen = max(1, int(batch_size * top_k_ratio))
 
